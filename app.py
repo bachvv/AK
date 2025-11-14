@@ -15,7 +15,7 @@ try:
 except ImportError:
     CONFIG_KEY = None
 
-MODEL_NAME = "gpt-4.1"  # change if needed (e.g., "gpt-4o-mini")
+MODEL_NAME = "gpt-4.1-mini"  # or "gpt-4o-mini", "gpt-4.1", etc.
 
 
 # ====================================================
@@ -119,15 +119,27 @@ def get_data(ticker: str):
     return {"info": info, "fin": fin, "bs": bs, "cf": cf, "hist": hist}
 
 
-def cagr(series: pd.Series):
-    if series is None or len(series) < 2:
+def safe_cagr(values):
+    """
+    Calculates CAGR safely:
+    - Accepts a list or 1D array-like of numbers
+    - Removes NaN, zero, and negative values
+    - Assumes values are ordered oldest->newest
+    - Requires at least 2 valid points
+    """
+    if values is None:
         return None
+
+    s = pd.to_numeric(pd.Series(values), errors="coerce").dropna()
+    s = s[s > 0]  # remove zero & negative
+
+    if len(s) < 2:
+        return None
+
+    start = s.iloc[0]
+    end = s.iloc[-1]
+    years = len(s) - 1
     try:
-        start = float(series.iloc[-1])
-        end = float(series.iloc[0])
-        if start <= 0:
-            return None
-        years = len(series) - 1
         return (end / start) ** (1 / years) - 1
     except Exception:
         return None
@@ -142,26 +154,34 @@ def compute_metrics(data: dict):
 
     metrics = {}
 
-    # Revenue CAGR
-    rev = None
+    # ---- Revenue CAGR (safe) ----
+    rev_row = None
     if not fin.empty:
-        if "Total Revenue" in fin.index:
-            rev = fin.loc["Total Revenue"]
-        elif "TotalRevenue" in fin.index:
-            rev = fin.loc["TotalRevenue"]
-    metrics["cagr"] = cagr(rev)
+        for key in ["Total Revenue", "TotalRevenue", "totalRevenue"]:
+            if key in fin.index:
+                rev_row = fin.loc[key]
+                break
 
-    # Basic profitability & valuation
+    if isinstance(rev_row, pd.Series):
+        # yfinance financials columns are usually newest -> oldest
+        # reverse so it's oldest -> newest for CAGR
+        rev_values = list(rev_row.fillna(0).astype(float).values[::-1])
+    else:
+        rev_values = None
+
+    metrics["cagr"] = safe_cagr(rev_values)
+
+    # ---- Basic profitability & valuation ----
     metrics["roe"] = info.get("returnOnEquity")
     metrics["net_margin"] = info.get("profitMargins")
     metrics["pe"] = info.get("trailingPE")
 
-    # Debt to equity
+    # ---- Debt to equity ----
     debt = info.get("totalDebt")
     equity = info.get("totalStockholderEquity")
     metrics["dte"] = debt / equity if equity not in (None, 0) and debt is not None else None
 
-    # Current ratio
+    # ---- Current ratio ----
     cr = None
     try:
         col = bs.columns[0]
@@ -172,29 +192,30 @@ def compute_metrics(data: dict):
         pass
     metrics["cr"] = cr
 
-    # FCF margin
+    # ---- FCF margin ----
     fcf_margin = None
     try:
-        col = cf.columns[0]
-        op = cf.loc["Total Cash From Operating Activities"][col]
-        cap = cf.loc["Capital Expenditures"][col]
+        col_cf = cf.columns[0]
+        op = cf.loc["Total Cash From Operating Activities"][col_cf]
+        cap = cf.loc["Capital Expenditures"][col_cf]
         fcf = op + cap
-        if rev is not None:
-            latest_rev = rev.iloc[0]
+        if isinstance(rev_row, pd.Series):
+            latest_rev = float(rev_row.iloc[0])
             if latest_rev != 0:
                 fcf_margin = fcf / latest_rev
     except Exception:
         pass
     metrics["fcf_margin"] = fcf_margin
 
-    # Trend (price > 50DMA > 150DMA)
+    # ---- Trend (price > 50DMA > 150DMA) ----
     trend = None
     try:
         if not hist.empty:
             close = hist["Close"]
             ma50 = close.rolling(50).mean().iloc[-1]
             ma150 = close.rolling(150).mean().iloc[-1]
-            trend = close.iloc[-1] > ma50 > ma150
+            if not math.isnan(ma50) and not math.isnan(ma150):
+                trend = close.iloc[-1] > ma50 > ma150
     except Exception:
         pass
     metrics["trend"] = trend
@@ -374,7 +395,6 @@ def llm_score(api_key: str, ticker: str, info: dict, metrics: dict):
     )
 
     content = resp.choices[0].message.content
-    # v1 can return string or list-of-parts; handle both
     if isinstance(content, list):
         text = "".join(part.get("text", "") for part in content if isinstance(part, dict))
     else:
@@ -418,7 +438,7 @@ if run:
         st.write(f"**Sector:** {info.get('sector', 'N/A')}")
         st.write(f"**Industry:** {info.get('industry', 'N/A')}")
         if metrics["cagr"] is not None:
-            st.write(f"**Revenue CAGR:** {metrics['cagr']:.2%}")
+            st.write(f"**Revenue CAGR (approx):** {metrics['cagr']:.2%}")
         if metrics["roe"] is not None:
             st.write(f"**ROE:** {metrics['roe']:.2%}")
         if metrics["net_margin"] is not None:
