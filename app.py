@@ -310,13 +310,22 @@ if run:
             icon = "❌"; bg = "#ffe6e6"; border = "#cc0000"
 
         st.markdown(
-            f"""
-            <div style="border-left:6px solid {border};background:{bg};padding:12px;margin-bottom:10px;border-radius:6px;">
-                <h4>{icon} {cid}. {name}
-                <span style="float:right">Score: {score}</span></h4>
-                <p><b>Evidence:</b> {c.get("evidence","")}</p>
-                {("<p><b>Notes:</b> "+c.get("notes","")+"</p>") if c.get("notes") else ""}
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
+    f"""
+    <div style="
+        border-left:6px solid {border};
+        background:{bg};
+        padding:12px;
+        margin-bottom:10px;
+        border-radius:6px;
+        color:black;
+    ">
+        <h4 style="margin:0;">
+            {icon} {cid}. {name}
+            <span style="float:right;font-weight:600;">Score: {score}</span>
+        </h4>
+        <p><b>Evidence:</b> {c.get("evidence","")}</p>
+        {("<p><b>Notes:</b> "+c.get("notes","")+"</p>") if c.get("notes") else ""}
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
