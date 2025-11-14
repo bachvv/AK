@@ -4,7 +4,7 @@ import math
 import yfinance as yf
 import pandas as pd
 import streamlit as st
-from openai import OpenAI
+import openai
 
 # ====================================================
 # LOAD API KEY (Mode A: config.py or environment or Streamlit secrets)
@@ -223,17 +223,24 @@ def llm_prompt(ticker, info, metrics):
     )
 
 def llm_score(api_key, ticker, info, metrics):
-    client = OpenAI(api_key=api_key)
-    resp = client.responses.create(
-        model=MODEL_NAME,
-        input=[
-            {"role":"system","content":LLM_SYSTEM_PROMPT},
-            {"role":"user","content":llm_prompt(ticker,info,metrics)}
-        ],
-        response_format={"type":"json_object"},
-    )
-    return json.loads(resp.output[0].content[0].text)["criteria"]
+    # Set API key for classic openai client
+    openai.api_key = api_key
 
+    messages = [
+        {"role": "system", "content": LLM_SYSTEM_PROMPT},
+        {"role": "user", "content": llm_prompt(ticker, info, metrics)},
+    ]
+
+    # Use a chat completion model you have access to
+    resp = openai.ChatCompletion.create(
+        model="gpt-4.1-mini",   # or "gpt-4o-mini", "gpt-4.1", etc.
+        messages=messages,
+        temperature=0,
+    )
+
+    content = resp.choices[0].message["content"]
+    data = json.loads(content)
+    return data["criteria"]
 # ====================================================
 # STREAMLIT UI
 # ====================================================
