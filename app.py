@@ -14,7 +14,7 @@ try:
 except:
     OPENAI_API_KEY = st.secrets.get("OPENAI_API_KEY")  # Streamlit Cloud Secrets
 
-MODEL_NAME = "gpt-5.1"
+MODEL_NAME = "gpt-4o-mini"
 
 # ====================================================
 # STREAMLIT CONFIG
@@ -224,33 +224,25 @@ def llm_prompt(ticker, info, metrics):
     )
 
 def llm_score(api_key, ticker, info, metrics):
+    # v1 client
     client = OpenAI(api_key=api_key)
 
+    # Combine all company info + metrics into a single user input string
     user_input = llm_prompt(ticker, info, metrics)
 
+    # Use Responses API: instructions + input (no chat-style roles here)
     resp = client.responses.create(
-        model="gpt-4.1-mini",  # or another Responses-capable model you have: "gpt-4.1", "gpt-4.1-mini", "gpt-4o-mini"
-        input=[
-            {
-                "role": "system",
-                "content": [
-                    {"type": "text", "text": LLM_SYSTEM_PROMPT}
-                ],
-            },
-            {
-                "role": "user",
-                "content": [
-                    {"type": "text", "text": user_input}
-                ],
-            },
-        ],
+        model="gpt-4.1-mini",   # or "gpt-4.1" / "gpt-4o-mini" depending on your access
+        instructions=LLM_SYSTEM_PROMPT,
+        input=user_input,
         response_format={"type": "json_object"},
     )
 
-    # New Responses API: output[0].content[0].text
+    # Extract the JSON text and parse
     content = resp.output[0].content[0].text
     data = json.loads(content)
     return data["criteria"]
+    
 # ====================================================
 # STREAMLIT UI
 # ====================================================
