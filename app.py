@@ -216,7 +216,11 @@ def llm_prompt(ticker, info, metrics):
         "debt": info.get("totalDebt"),
         "shares": info.get("sharesOutstanding"),
     }
-    return f"Ticker: {ticker}\nInfo: {json.dumps(subset)}\nMetrics: {json.dumps(metrics)}"
+    return (
+        f"Ticker: {ticker}\n"
+        f"Info: {json.dumps(subset, default=str)}\n"
+        f"Metrics: {json.dumps(metrics, default=str)}"
+    )
 
 def llm_score(api_key, ticker, info, metrics):
     client = OpenAI(api_key=api_key)
