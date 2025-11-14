@@ -14,7 +14,7 @@ try:
 except:
     OPENAI_API_KEY = st.secrets.get("OPENAI_API_KEY")  # Streamlit Cloud Secrets
 
-MODEL_NAME = "gpt-4o-mini"
+MODEL_NAME = "gpt-4.1"
 
 # ====================================================
 # STREAMLIT CONFIG
