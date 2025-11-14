@@ -4,7 +4,7 @@ import math
 import yfinance as yf
 import pandas as pd
 import streamlit as st
-import openai
+from openai import OpenAI
 
 # ====================================================
 # LOAD API KEY (Mode A: config.py or environment or Streamlit secrets)
@@ -216,6 +216,7 @@ def llm_prompt(ticker, info, metrics):
         "debt": info.get("totalDebt"),
         "shares": info.get("sharesOutstanding"),
     }
+
     return (
         f"Ticker: {ticker}\n"
         f"Info: {json.dumps(subset, default=str)}\n"
@@ -223,22 +224,31 @@ def llm_prompt(ticker, info, metrics):
     )
 
 def llm_score(api_key, ticker, info, metrics):
-    # Set API key for classic openai client
-    openai.api_key = api_key
+    client = OpenAI(api_key=api_key)
 
-    messages = [
-        {"role": "system", "content": LLM_SYSTEM_PROMPT},
-        {"role": "user", "content": llm_prompt(ticker, info, metrics)},
-    ]
+    user_input = llm_prompt(ticker, info, metrics)
 
-    # Use a chat completion model you have access to
-    resp = openai.ChatCompletion.create(
-        model="gpt-4.1-mini",   # or "gpt-4o-mini", "gpt-4.1", etc.
-        messages=messages,
-        temperature=0,
+    resp = client.responses.create(
+        model="gpt-4.1-mini",  # or another Responses-capable model you have: "gpt-4.1", "gpt-4.1-mini", "gpt-4o-mini"
+        input=[
+            {
+                "role": "system",
+                "content": [
+                    {"type": "text", "text": LLM_SYSTEM_PROMPT}
+                ],
+            },
+            {
+                "role": "user",
+                "content": [
+                    {"type": "text", "text": user_input}
+                ],
+            },
+        ],
+        response_format={"type": "json_object"},
     )
 
-    content = resp.choices[0].message["content"]
+    # New Responses API: output[0].content[0].text
+    content = resp.output[0].content[0].text
     data = json.loads(content)
     return data["criteria"]
 # ====================================================
