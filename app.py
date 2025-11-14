@@ -292,7 +292,7 @@ if run:
         color = "#ff4d4d"
 
     st.markdown(
-        f"""<div style="background:{color};padding:12px;border-radius:8px;color:white;text-align:center;">
+        f"""<div style="background:{color};padding:12px;border-radius:8px;color:black;text-align:center;">
             {'Strong' if overall>=8 else 'Mixed' if overall>=5 else 'Weak'} candidate
         </div>""",
         unsafe_allow_html=True,
