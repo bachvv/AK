@@ -1,5 +1,5 @@
 streamlit
 yfinance
 pandas
-openai>=0.28.0
+openai>=1.6.0
 python-dotenv
