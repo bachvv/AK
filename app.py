@@ -224,23 +224,29 @@ def llm_prompt(ticker, info, metrics):
     )
 
 def llm_score(api_key, ticker, info, metrics):
-    # v1 client
+    # v1-style OpenAI client
     client = OpenAI(api_key=api_key)
 
-    # Combine all company info + metrics into a single user input string
     user_input = llm_prompt(ticker, info, metrics)
 
-    # Use Responses API: instructions + input (no chat-style roles here)
-    resp = client.responses.create(
-        model="gpt-4.1-mini",   # or "gpt-4.1" / "gpt-4o-mini" depending on your access
-        instructions=LLM_SYSTEM_PROMPT,
-        input=user_input,
+    resp = client.chat.completions.create(
+        model="gpt-4.1-mini",  # or "gpt-4o-mini" / "gpt-4.1"
+        messages=[
+            {"role": "system", "content": LLM_SYSTEM_PROMPT},
+            {"role": "user", "content": user_input},
+        ],
         response_format={"type": "json_object"},
+        temperature=0,
     )
 
-    # Extract the JSON text and parse
-    content = resp.output[0].content[0].text
-    data = json.loads(content)
+    # In v1, message.content can be a string or list of parts
+    content = resp.choices[0].message.content
+    if isinstance(content, list):
+        text = "".join(part.get("text", "") for part in content if isinstance(part, dict))
+    else:
+        text = content
+
+    data = json.loads(text)
     return data["criteria"]
     
 # ====================================================
