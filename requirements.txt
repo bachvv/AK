@@ -3,3 +3,6 @@ yfinance
 pandas
 openai>=1.6.0
 python-dotenv
+finvizfinance
+beautifulsoup4
+requests
