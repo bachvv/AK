@@ -2006,7 +2006,7 @@ if run:
         "Other"
     ]
     
-    # Sort categories and flatten
+    # Sort categories and flatten - sort by ID within each category
     ordered = []
     for cat in category_order:
         if cat in by_category:
@@ -2015,6 +2015,11 @@ if run:
     for cat, crits in by_category.items():
         if cat not in category_order:
             ordered.extend(sorted(crits, key=lambda x: x["id"]))
+    
+    # Renumber all criteria sequentially from 1, 2, 3... going down
+    for idx, crit in enumerate(ordered, start=1):
+        crit["display_id"] = idx  # Store original ID for reference if needed
+        crit["id"] = idx  # Update ID to sequential number
 
     scores = [c["score_0_10"] for c in ordered]
     overall = sum(scores) / len(scores) if scores else 0
