@@ -1,4 +1,8 @@
 # config.py-template
 # Copy this file to config.py and insert your actual API key.
 
+<<<<<<< HEAD
 OPENAI_API_KEY = "sk-replace-with-your-key"
+=======
+OPENAI_API_KEY = "sk-replace-with-your-key"
+>>>>>>> 1b0bcc4188e92a81a27284e1367e77867cd8b294
