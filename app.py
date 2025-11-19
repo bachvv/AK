@@ -16,11 +16,6 @@ with st.sidebar:
 
 # Run whichever page is selected in the navigation menu.
 pages.run()
-import os
-import json
-import math
-
-import yfinance as yf
 import pandas as pd
 import streamlit as st
 from openai import OpenAI
